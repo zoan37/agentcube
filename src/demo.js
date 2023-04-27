@@ -191,7 +191,13 @@ export function startDemo() {
         const DURATION = 0.5;
 
         if (avatar.currentAnimationAction) {
-            avatar.currentAnimationAction.fadeOut(DURATION);
+            animationAction.reset();
+            avatar.currentAnimationAction
+                .crossFadeTo(animationAction, DURATION, true)
+                .play();
+        } else {
+            animationAction.reset();
+            animationAction.play();
         }
 
         avatar.currentAnimationAction = animationAction;
@@ -199,11 +205,13 @@ export function startDemo() {
         // animationAction.reset();
         // animationAction.play();
 
+        /*
         avatar.currentAnimationAction.reset()
             .setEffectiveTimeScale(1)
             .setEffectiveWeight(1)
             .fadeIn(DURATION)
             .play();
+        */
     }
 
     async function createAvatar(id, modelUrl) {
