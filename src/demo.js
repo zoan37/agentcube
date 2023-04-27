@@ -6,227 +6,285 @@ import { loadMixamoAnimation } from './loadMixamoAnimation.js';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 
 export function startDemo() {
-	// renderer
-	const renderer = new THREE.WebGLRenderer();
-	renderer.setSize(window.innerWidth, window.innerHeight);
-	renderer.setPixelRatio(window.devicePixelRatio);
-	renderer.outputEncoding = THREE.sRGBEncoding;
-	document.body.appendChild(renderer.domElement);
+    const animations = [
+        'Idle',
+        'Jumping',
+        'Running',
+        'Walking',
+    ];
 
-	// camera
-	const camera = new THREE.PerspectiveCamera(30.0, window.innerWidth / window.innerHeight, 0.1, 20.0);
-	camera.position.set(0.0, 1.0, 5.0);
+    function getAnimationUrl(name) {
+        return `./animations/${name}.fbx`;
+    }
 
-	// camera controls
-	const controls = new OrbitControls(camera, renderer.domElement);
-	controls.screenSpacePanning = true;
-	controls.target.set(0.0, 1.0, 0.0);
-	controls.update();
+    const AVATAR_ID_1 = 'avatar1';
+    const AVATAR_ID_2 = 'avatar2';
 
-	// scene
-	const scene = new THREE.Scene();
+    const avatarMap = {};
 
-	// light
-	const light = new THREE.DirectionalLight(0xffffff);
-	light.position.set(1.0, 1.0, 1.0).normalize();
-	scene.add(light);
+    // renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.shadowMap.enabled = true;
 
-	// const defaultModelUrl = './models/VRM1_Constraint_Twist_Sample.vrm';
-	// const defaultModelUrl = './models/Male1.vrm';
-	// const defaultModelUrl = './models/Female1.vrm';
-	const defaultModelUrl = './models/Female2.vrm';
+    // https://blender.stackexchange.com/questions/34728/materials-from-blender-to-three-js-colors-seem-to-be-different
+    renderer.gammaOutput = true;
+    renderer.gammaFactor = 2.2;
 
-	// gltf and vrm
-	let currentVrm = undefined;
-	let currentAnimationUrl = undefined;
-	let currentMixer = undefined;
+    document.body.appendChild(renderer.domElement);
 
-	const helperRoot = new THREE.Group();
-	helperRoot.renderOrder = 10000;
-	// scene.add(helperRoot);
+    // camera
+    const camera = new THREE.PerspectiveCamera(30.0, window.innerWidth / window.innerHeight, 0.1, 2000.0);
+    camera.position.set(0.0, 1.0, 10.0);
 
-	function loadVRM(modelUrl) {
+    // camera controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.screenSpacePanning = true;
+    controls.target.set(0.0, 1.0, 0.0);
+    controls.update();
 
-		const loader = new GLTFLoader();
-		loader.crossOrigin = 'anonymous';
+    // scene
+    const scene = new THREE.Scene();
 
-		helperRoot.clear();
+    // light
+    const light = new THREE.DirectionalLight(0xffffff);
+    light.position.set(1.0, 1.0, 1.0).normalize();
+    scene.add(light);
 
-		loader.register((parser) => {
+    scene.background = new THREE.Color('black');
 
-			return new VRMLoaderPlugin(parser, { helperRoot: helperRoot, autoUpdateHumanBones: true });
+    // const defaultModelUrl = './models/VRM1_Constraint_Twist_Sample.vrm';
+    // const defaultModelUrl = './models/Male1.vrm';
+    // const defaultModelUrl = './models/Female1.vrm';
+    const model1Url = './models/Female2.vrm';
+    const model2Url = './models/Male1.vrm';
 
-		});
+    // gltf and vrm
+    let currentVrm = undefined;
+    let currentAnimationUrl = undefined;
+    let currentMixer = undefined;
 
-		loader.load(
-			// URL of the VRM you want to load
-			modelUrl,
+    const helperRoot = new THREE.Group();
+    helperRoot.renderOrder = 10000;
+    // scene.add(helperRoot);
 
-			// called when the resource is loaded
-			(gltf) => {
-				
-				console.log('Loaded gltf');
+    function disposeVRM(vrm) {
+        scene.remove(vrm.scene);
 
-				VRMUtils.removeUnnecessaryVertices(gltf.scene);
-				VRMUtils.removeUnnecessaryJoints(gltf.scene);
+        VRMUtils.deepDispose(vrm.scene);
+    }
 
-				const vrm = gltf.userData.vrm;
+    function loadVRM(modelUrl, callback) {
 
-				console.log('vrm:');
-				console.log(vrm);
+        const loader = new GLTFLoader();
+        loader.crossOrigin = 'anonymous';
 
-				if (currentVrm) {
+        helperRoot.clear();
 
-					scene.remove(currentVrm.scene);
+        loader.register((parser) => {
 
-					VRMUtils.deepDispose(currentVrm.scene);
+            return new VRMLoaderPlugin(parser, { helperRoot: helperRoot, autoUpdateHumanBones: true });
 
-				}
+        });
 
-				// put the model to the scene
-				currentVrm = vrm;
-				scene.add(vrm.scene);
+        loader.load(
+            // URL of the VRM you want to load
+            modelUrl,
 
-				// Disable frustum culling
-				vrm.scene.traverse((obj) => {
+            // called when the resource is loaded
+            (gltf) => {
 
-					obj.frustumCulled = false;
+                console.log('Loaded gltf');
 
-				});
+                // calling these functions greatly improves the performance
+                VRMUtils.removeUnnecessaryVertices(gltf.scene);
+                VRMUtils.removeUnnecessaryJoints(gltf.scene);
 
-				if (currentAnimationUrl) {
+                const vrm = gltf.userData.vrm;
 
-					loadFBX(currentAnimationUrl);
+                console.log('vrm:');
+                console.log(vrm);
 
-				}
+                /*
+                if (currentVrm) {
 
-				// rotate if the VRM is VRM0.0
-				VRMUtils.rotateVRM0(vrm);
+                    scene.remove(currentVrm.scene);
 
-				console.log(vrm);
+                    VRMUtils.deepDispose(currentVrm.scene);
 
-			},
+                }
+                */
 
-			// called while loading is progressing
-			(progress) => console.log('Loading model...', 100.0 * (progress.loaded / progress.total), '%'),
+                // put the model to the scene
+                // currentVrm = vrm;
+                // scene.add(vrm.scene);
 
-			// called when loading has errors
-			(error) => {
-				console.error('Error loading gltf')
-				console.error(error)
-			},
-		);
+                // Disable frustum culling
+                vrm.scene.traverse((obj) => {
 
-	}
+                    obj.frustumCulled = false;
 
-	loadVRM(defaultModelUrl);
+                });
 
-	// mixamo animation
-	function loadFBX(animationUrl) {
+                /*
+                if (currentAnimationUrl) {
 
-		currentAnimationUrl = animationUrl;
+                    loadFBX(currentAnimationUrl);
 
-		// create AnimationMixer for VRM
-		currentMixer = new THREE.AnimationMixer(currentVrm.scene);
+                }
+                */
 
-		// Load animation
-		loadMixamoAnimation(animationUrl, currentVrm).then((clip) => {
+                // rotate if the VRM is VRM0.0
+                VRMUtils.rotateVRM0(vrm);
 
-			// Apply the loaded animation to mixer and play
-			currentMixer.clipAction(clip).play();
-			currentMixer.timeScale = params.timeScale;
+                console.log(vrm);
 
-		});
+                callback(null, {
+                    gltf: gltf,
+                    vrm: vrm,
+                });
 
-	}
+            },
 
-	// helpers
-	const gridHelper = new THREE.GridHelper(10, 10);
-	scene.add(gridHelper);
+            // called while loading is progressing
+            (progress) => console.log('Loading model...', 100.0 * (progress.loaded / progress.total), '%'),
 
-	const axesHelper = new THREE.AxesHelper(5);
-	// scene.add(axesHelper);
+            // called when loading has errors
+            (error) => {
+                console.error('Error loading gltf')
+                console.error(error)
+            },
+        );
 
-	// animate
-	const clock = new THREE.Clock();
+    }
 
-	function animate() {
+    async function createAvatar(id, modelUrl) {
+        const avatar = {
+            id: id,
+            modelUrl: modelUrl,
+            gltf: undefined,
+            vrm: undefined,
+            mixer: undefined
+        };
 
-		requestAnimationFrame(animate);
+        avatarMap[id] = avatar;
 
-		const deltaTime = clock.getDelta();
+        const data = await (function () {
+            return new Promise((resolve, reject) => {
+                loadVRM(modelUrl, (error, data) => {
+                    resolve(data);
+                });
+            })
+        })();
 
-		// if animation is loaded
-		if (currentMixer) {
+        avatar.gltf = data.gltf;
+        avatar.vrm = data.vrm;
+        avatar.mixer = new THREE.AnimationMixer(data.vrm.scene);
 
-			// update the animation
-			currentMixer.update(deltaTime);
+        return avatar;
+    }
 
-		}
+    async function initializeAvatars() {
+        const avatar1 = await createAvatar(AVATAR_ID_1, model1Url);
+        scene.add(avatar1.vrm.scene);
+        avatar1.vrm.scene.position.set(0.8, 0, 0);
+        avatar1.vrm.scene.rotation.y = -Math.PI / 2;
 
-		if (currentVrm) {
+        const avatar2 = await createAvatar(AVATAR_ID_2, model2Url);
+        scene.add(avatar2.vrm.scene);
+        avatar2.vrm.scene.position.set(-0.8, 0, 0);
+        avatar2.vrm.scene.rotation.y = Math.PI / 2;
+    }
 
-			currentVrm.update(deltaTime);
+    initializeAvatars();
 
-		}
+    /*
+    loadVRM(model1Url, (error, data) => {
+        const gltf = data.gltf;
+        const vrm = data.vrm;
 
-		renderer.render(scene, camera);
+        console.log(gltf);
 
-	}
+        scene.add(vrm.scene);
 
-	animate();
+        vrm.scene.position.set(0.8, 0, 0);
+        vrm.scene.rotation.y = -Math.PI / 2;
+    });
 
-	// gui
-	const gui = new GUI();
+    loadVRM(model2Url, (error, data) => {
+        const gltf = data.gltf;
+        const vrm = data.vrm;
 
-	const params = {
+        console.log(gltf);
 
-		timeScale: 1.0,
+        scene.add(vrm.scene);
 
-	};
+        vrm.scene.position.set(-0.8, 0, 0);
+        vrm.scene.rotation.y = Math.PI / 2;
+    });
+    */
 
-	gui.add(params, 'timeScale', 0.0, 2.0, 0.001).onChange((value) => {
+    // mixamo animation
+    function loadFBX(animationUrl) {
 
-		currentMixer.timeScale = value;
+        currentAnimationUrl = animationUrl;
 
-	});
+        // create AnimationMixer for VRM
+        currentMixer = new THREE.AnimationMixer(currentVrm.scene);
 
-	// file input
+        // Load animation
+        loadMixamoAnimation(animationUrl, currentVrm).then((clip) => {
 
-	// dnd handler
-	window.addEventListener('dragover', function (event) {
+            // Apply the loaded animation to mixer and play
+            currentMixer.clipAction(clip).play();
+            currentMixer.timeScale = params.timeScale;
 
-		event.preventDefault();
+        });
 
-	});
+    }
 
-	// TODO: Bug: dropping multiple .fbx files keeping lowering the y position
-	// of the avatar, such that it keeps going below the floor.
+    // helpers
+    const gridColor = '#78cce2';
+    const gridHelper = new THREE.GridHelper(10, 10, gridColor, gridColor);
+    scene.add(gridHelper);
 
-	window.addEventListener('drop', function (event) {
+    const axesHelper = new THREE.AxesHelper(5);
+    // scene.add(axesHelper);
 
-		event.preventDefault();
+    // animate
+    const clock = new THREE.Clock();
 
-		// read given file then convert it to blob url
-		const files = event.dataTransfer.files;
-		if (!files) return;
+    function animate() {
 
-		const file = files[0];
-		if (!file) return;
+        requestAnimationFrame(animate);
 
-		const fileType = file.name.split('.').pop();
-		const blob = new Blob([file], { type: 'application/octet-stream' });
-		const url = URL.createObjectURL(blob);
+        const deltaTime = clock.getDelta();
 
-		if (fileType === 'fbx') {
+        // if animation is loaded
+        if (currentMixer) {
 
-			loadFBX(url);
+            // update the animation
+            currentMixer.update(deltaTime);
 
-		} else {
+        }
 
-			loadVRM(url);
+        if (currentVrm) {
 
-		}
+            currentVrm.update(deltaTime);
 
-	});
+        }
+
+        renderer.render(scene, camera);
+
+    }
+
+    animate();
+
+    const params = {
+
+        timeScale: 1.0,
+
+    };
 }

@@ -15,9 +15,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div id="divInfo">
-    drag and drop <a href="https://www.mixamo.com/" target="_blank" rel="noopener noreferrer">mixamo</a> animation
-    (.fbx)<br />
+  <div>
   </div>
 </template>
 
