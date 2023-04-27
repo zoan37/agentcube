@@ -9,8 +9,17 @@ export function startDemo() {
     const animations = [
         'Idle',
         'Jumping',
-        'Running',
-        'Walking',
+        'Chicken Dance',
+        'Gangnam Style',
+        'Samba Dancing',
+        'Silly Dancing',
+        'Snake Hip Hop Dance',
+        'Swing Dancing',
+        'Twist Dance',
+        'Wave Hip Hop Dance',
+
+        // 'Running',
+        // 'Walking',
     ];
 
     function getAnimationUrl(name) {
@@ -166,7 +175,8 @@ export function startDemo() {
             modelUrl: modelUrl,
             gltf: undefined,
             vrm: undefined,
-            mixer: undefined
+            mixer: undefined,
+            animationActions: {},
         };
 
         avatarMap[id] = avatar;
@@ -182,6 +192,25 @@ export function startDemo() {
         avatar.gltf = data.gltf;
         avatar.vrm = data.vrm;
         avatar.mixer = new THREE.AnimationMixer(data.vrm.scene);
+        avatar.mixer.timeScale = params.timeScale;
+
+        // load animations
+        for (var i = 0; i < animations.length; i++) {
+            const animation = animations[i];
+            const animationUrl = getAnimationUrl(animation);
+
+            console.log('Loading animation: ' + animationUrl);
+
+            const clip = await (function () {
+                return new Promise((resolve, reject) => {
+                    loadMixamoAnimation(animationUrl, avatar.vrm).then((clip) => {
+                        resolve(clip);
+                    });
+                })
+            })();
+
+            avatar.animationActions[animation] = avatar.mixer.clipAction(clip);
+        }
 
         return avatar;
     }
@@ -192,10 +221,14 @@ export function startDemo() {
         avatar1.vrm.scene.position.set(0.8, 0, 0);
         avatar1.vrm.scene.rotation.y = -Math.PI / 2;
 
+        avatar1.animationActions['Chicken Dance'].play();
+
         const avatar2 = await createAvatar(AVATAR_ID_2, model2Url);
         scene.add(avatar2.vrm.scene);
         avatar2.vrm.scene.position.set(-0.8, 0, 0);
         avatar2.vrm.scene.rotation.y = Math.PI / 2;
+
+        avatar2.animationActions['Chicken Dance'].play();
     }
 
     initializeAvatars();
@@ -262,6 +295,20 @@ export function startDemo() {
 
         const deltaTime = clock.getDelta();
 
+        // loop through avatarMap
+        for (var id in avatarMap) {
+            const avatar = avatarMap[id];
+
+            if (avatar.mixer) {
+                avatar.mixer.update(deltaTime);
+            }
+
+            if (avatar.vrm) {
+                avatar.vrm.update(deltaTime);
+            }
+        }
+
+        /*
         // if animation is loaded
         if (currentMixer) {
 
@@ -275,6 +322,7 @@ export function startDemo() {
             currentVrm.update(deltaTime);
 
         }
+        */
 
         renderer.render(scene, camera);
 
