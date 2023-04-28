@@ -7,7 +7,26 @@ import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { WindowAILLM } from './window_ai_llm';
 import { GenerativeAgent } from './generative_agent';
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export function startDemo() {
+    const animations = [
+        'Idle',
+        'Jumping',
+        'Chicken Dance',
+        'Gangnam Style',
+        'Samba Dancing',
+        'Silly Dancing',
+        'Snake Hip Hop Dance',
+        'Twist Dance',
+        'Wave Hip Hop Dance',
+
+        // 'Running',
+        // 'Walking',
+    ];
+
     async function runConversation(agents, initialObservation) {
         // Runs a conversation between agents
         let [, observation] = await agents[1].generateReaction(initialObservation);
@@ -27,6 +46,8 @@ export function startDemo() {
                 break;
             }
             turns += 1;
+
+            await sleep(2000);
         }
     }
 
@@ -34,32 +55,25 @@ export function startDemo() {
         const llm = new WindowAILLM({});
         const agent1 = new GenerativeAgent({
             name: 'Alice',
+            age: 25,
+            traits: '',
             llm: llm,
+            currentAnimation: 'Idle',
+            animations: animations,
         });
         const agent2 = new GenerativeAgent({
             name: 'Bob',
+            age: 25,
+            traits: '',
             llm: llm,
+            currentAnimation: 'Idle',
+            animations: animations,
         });
 
         runConversation([agent1, agent2], 'Another agent is in the room. You may talk to them.');
     }
 
     runAgents();
-
-    const animations = [
-        'Idle',
-        'Jumping',
-        'Chicken Dance',
-        'Gangnam Style',
-        'Samba Dancing',
-        'Silly Dancing',
-        'Snake Hip Hop Dance',
-        'Twist Dance',
-        'Wave Hip Hop Dance',
-
-        // 'Running',
-        // 'Walking',
-    ];
 
     function getAnimationUrl(name) {
         return `./animations/${name}.fbx`;
