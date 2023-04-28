@@ -4,8 +4,48 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { loadMixamoAnimation } from './loadMixamoAnimation.js';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
+import { WindowAILLM } from './window_ai_llm';
+import { GenerativeAgent } from './generative_agent';
 
 export function startDemo() {
+    async function runConversation(agents, initialObservation) {
+        // Runs a conversation between agents
+        let [, observation] = await agents[1].generateReaction(initialObservation);
+        console.log(observation);
+        let turns = 0;
+        while (true) {
+            let breakDialogue = false;
+            for (const agent of agents) {
+                const [stayInDialogue, newObservation] = await agent.generateDialogueResponse(observation);
+                console.log(newObservation);
+                observation = newObservation;
+                if (!stayInDialogue) {
+                    breakDialogue = true;
+                }
+            }
+            if (breakDialogue) {
+                break;
+            }
+            turns += 1;
+        }
+    }
+
+    async function runAgents() {
+        const llm = new WindowAILLM({});
+        const agent1 = new GenerativeAgent({
+            name: 'Alice',
+            llm: llm,
+        });
+        const agent2 = new GenerativeAgent({
+            name: 'Bob',
+            llm: llm,
+        });
+
+        runConversation([agent1, agent2], 'Another agent is in the room. You may talk to them.');
+    }
+
+    runAgents();
+
     const animations = [
         'Idle',
         'Jumping',
