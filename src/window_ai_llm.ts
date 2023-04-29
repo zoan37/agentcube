@@ -29,7 +29,7 @@ export class WindowAILLM extends BaseLLM {
 
         // @ts-ignore
         const response = await ai.getCompletion(request, {
-            // temperature: 0,
+            temperature: 0.1,
         });
 
         console.log('window.ai response:');

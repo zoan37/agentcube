@@ -5,11 +5,15 @@ import { Document } from 'langchain/document';
 
 
 const ANIMATION_SUFFIX =
-    'In addition, what animation state should {agent_name} be in?'
+    'In addition, what animation state should {agent_name} be in as part of the reaction to the observation?'
     + 'Respond in one line (the last line in your response). Write:\nANIMATION STATE: [animation state].\n\n';
 
 function stripBracketsFromAnimationState(state: string) {
-    return state.replace("[", "").replace("]", "");
+    const x = state.replace("[", "").replace("]", "").trim();
+    if (x.endsWith(".")) {
+        return x.slice(0, -1);
+    }
+    return x;
 }
 
 // class for generative agent
@@ -67,7 +71,8 @@ export class GenerativeAgent {
                 animationStates += ", ";
             }
         }
-        const summary = `${this.name} is actually an avatar in a virtual 3D world, but ${this.name} thinks it is a human in the real world. `
+        const summary = `${this.name} is a human with an avatar in a virtual 3D world. `
+            + `The avatar can change its animation state. ` 
             + `The avatar can be in the following animation states: ${animationStates}. `
             + `The default animation state is [Idle].`;
         return (
@@ -137,18 +142,18 @@ export class GenerativeAgent {
         if (result.includes("REACT:")) {
             // @ts-ignore
             const reaction = result.split("REACT:").pop().trim();
-            return [false, `${this.name}: ${reaction}`, animationState];
+            return [false, `${this.name}: ${reaction} with animation state ${animationState}`, animationState];
         }
         if (result.includes("SAY:")) {
             // @ts-ignore
             const said_value = result.split("SAY:").pop().trim();
-            return [true, `${this.name} said ${said_value}`, animationState];
+            return [true, `${this.name} said ${said_value} with animation state ${animationState}`, animationState];
         } else {
-            return [false, result, animationState];
+            return [false, result + ` with animation state ${animationState}`, animationState];
         }
     }
 
-    async generateDialogueResponse(observation: string): Promise<[boolean, string]> {
+    async generateDialogueResponse(observation: string): Promise<[boolean, string, string]> {
         const call_to_action_template = (
             'What would {agent_name} say? To end the conversation, write: GOODBYE: "what to say". Otherwise to continue the conversation, write: SAY: "what to say next"\n\n'
             + ANIMATION_SUFFIX
@@ -169,15 +174,15 @@ export class GenerativeAgent {
             // @ts-ignore
             const farewell = result.split("GOODBYE:").pop().trim();
             this.addMemory(`${this.name} observed ${observation} and said ${farewell} with animation state ${animationState}`);
-            return [false, `${this.name} said ${farewell}`];
+            return [false, `${this.name} said ${farewell} with animation state ${animationState}`, animationState];
         }
         if (result.includes("SAY:")) {
             // @ts-ignore
             const response_text = result.split("SAY:").pop().trim();
             this.addMemory(`${this.name} observed ${observation} and said ${response_text} with animation state ${animationState}`);
-            return [true, `${this.name} said ${response_text}`];
+            return [true, `${this.name} said ${response_text} with animation state ${animationState}`, animationState];
         } else {
-            return [false, result];
+            return [false, result + ` with animation state ${animationState}`, animationState];
         }
     }
 }

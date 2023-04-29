@@ -6,8 +6,14 @@ import { startDemo } from "./demo.js";
 // @ts-ignore
 // import { getWindowAI } from 'window.ai';
 
+// hack to prevent demo starting twice when doing local dev
+var isDemoStarted = false;
+
 onMounted(async () => {
-  startDemo();
+  if (!isDemoStarted) {
+    startDemo();
+    isDemoStarted = true;
+  }
 
   // @ts-ignore
   // const ai = await getWindowAI();

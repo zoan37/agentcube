@@ -12,6 +12,9 @@ function sleep(ms) {
 }
 
 export function startDemo() {
+    const AVATAR_ID_1 = 'avatar1';
+    const AVATAR_ID_2 = 'avatar2';
+
     const animations = [
         'Idle',
         'Jumping',
@@ -29,17 +32,27 @@ export function startDemo() {
 
     async function runConversation(agents, initialObservation) {
         // Runs a conversation between agents
-        let [, observation] = await agents[1].generateReaction(initialObservation);
+        let [, observation, animation] = await agents[1].generateReaction(initialObservation);
+
+        if (animation) {
+            playAnimation(agents[1]._id, agents[1].currentAnimation);
+        }
+
         console.log(observation);
         let turns = 0;
         while (true) {
             let breakDialogue = false;
             for (const agent of agents) {
-                const [stayInDialogue, newObservation] = await agent.generateDialogueResponse(observation);
+                const [stayInDialogue, newObservation, newAnimation] = await agent.generateDialogueResponse(observation);
                 console.log(newObservation);
                 observation = newObservation;
                 if (!stayInDialogue) {
                     breakDialogue = true;
+                }
+
+                console.log(newObservation);
+                if (newAnimation) {
+                    playAnimation(agent._id, agent.currentAnimation);
                 }
             }
             if (breakDialogue) {
@@ -47,7 +60,7 @@ export function startDemo() {
             }
             turns += 1;
 
-            await sleep(2000);
+            await sleep(3000);
         }
     }
 
@@ -70,7 +83,10 @@ export function startDemo() {
             animations: animations,
         });
 
-        runConversation([agent1, agent2], 'Another agent is in the room. You may talk to them.');
+        agent1._id = AVATAR_ID_1;
+        agent2._id = AVATAR_ID_2;
+
+        runConversation([agent1, agent2], 'You are on a dance floor. There is another person near you.');
     }
 
     runAgents();
@@ -78,9 +94,6 @@ export function startDemo() {
     function getAnimationUrl(name) {
         return `./animations/${name}.fbx`;
     }
-
-    const AVATAR_ID_1 = 'avatar1';
-    const AVATAR_ID_2 = 'avatar2';
 
     const avatarMap = {};
 
@@ -341,6 +354,7 @@ export function startDemo() {
         'Wave Hip Hop Dance',
         */
 
+        /*
         setTimeout(() => {
             playAnimation(AVATAR_ID_1, 'Jumping');
             playAnimation(AVATAR_ID_2, 'Jumping');
@@ -380,6 +394,7 @@ export function startDemo() {
                 }, 2000);
             }, 2000);
         }, 2000);
+        */
     }
 
     initializeAvatars();
