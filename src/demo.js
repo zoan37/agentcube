@@ -38,6 +38,10 @@ export function startDemo() {
             playAnimation(agents[1]._id, agents[1].currentAnimation);
         }
 
+        window.receiveChatMessage({
+            message: observation,
+        });
+
         console.log(observation);
         let turns = 0;
         while (true) {
@@ -49,6 +53,10 @@ export function startDemo() {
                 if (!stayInDialogue) {
                     breakDialogue = true;
                 }
+
+                window.receiveChatMessage({
+                    message: observation,
+                });
 
                 console.log(newObservation);
                 if (newAnimation) {

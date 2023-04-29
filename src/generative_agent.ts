@@ -6,7 +6,7 @@ import { Document } from 'langchain/document';
 
 const ANIMATION_SUFFIX =
     'In addition, what animation state should {agent_name} be in as part of the reaction to the observation?'
-    + 'Respond in one line (the last line in your response). Write:\nANIMATION STATE: [animation state].\n\n';
+    + 'Respond in a new line. Write:\nANIMATION STATE: [animation state].\n\n';
 
 function stripBracketsFromAnimationState(state: string) {
     const x = state.replace("[", "").replace("]", "").trim();
@@ -72,6 +72,7 @@ export class GenerativeAgent {
             }
         }
         const summary = `${this.name} is a human with an avatar in a virtual 3D world. `
+            + `${this.name} is not aware it is an avatar and thinks it is in the real world.`
             + `The avatar can change its animation state. ` 
             + `The avatar can be in the following animation states: ${animationStates}. `
             + `The default animation state is [Idle].`;

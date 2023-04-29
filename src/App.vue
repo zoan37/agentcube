@@ -2,6 +2,8 @@
 import { onMounted } from "vue";
 // @ts-ignore
 import { startDemo } from "./demo.js";
+// @ts-ignore
+import Chat from './Chat.vue';
 
 // @ts-ignore
 // import { getWindowAI } from 'window.ai';
@@ -23,6 +25,7 @@ onMounted(async () => {
 <template>
   <div>
   </div>
+  <Chat />
 </template>
 
 <style scoped>
